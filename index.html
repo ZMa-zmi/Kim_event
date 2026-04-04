@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Денис Ланцов — Event Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── RESET ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #090909;
+      --text:      #ffffff;
+      --green:     #9EFF00;
+      --grey:      #555555;
+      --dk-grey:   #2a2a2a;
+      --font-d:    'Oswald', sans-serif;
+      --font-b:    'Inter', sans-serif;
+      --ph:        2rem;
+      --ease-o:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-x:    cubic-bezier(0.76, 0, 0.24, 1);
+      --ease-blur: cubic-bezier(0.25, 0.84, 0.43, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-b); font-size: 13px; line-height: 1.5;
+      overflow-x: hidden; -webkit-font-smoothing: antialiased; cursor: none;
+    }
+    a  { text-decoration: none; color: inherit; cursor: none; }
+    ul { list-style: none; }
+    svg { display: block; flex-shrink: 0; }
+
+    /* ── CURSOR ────────────────────────────────────────────── */
+    #cursor {
+      width: 8px; height: 8px; background: var(--text); border-radius: 50%;
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%); mix-blend-mode: difference;
+      transition: width .3s var(--ease-o), height .3s var(--ease-o), background .3s;
+    }
+    #cursor.hovered { width: 36px; height: 36px; background: var(--green); }
+
+    /* ── BG GRID ───────────────────────────────────────────── */
+    .bg-grid {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      display: grid; grid-template-columns: repeat(10, 1fr); padding: 0 var(--ph);
+    }
+    .bg-col { border-right: 1px solid rgba(255,255,255,.04); }
+    .bg-col:first-child { border-left: 1px solid rgba(255,255,255,.04); }
+
+    /* ── PRELOADER ─────────────────────────────────────────── */
+    #loader {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; align-items: flex-end; padding: calc(var(--ph)*2) var(--ph); overflow: hidden;
+    }
+    #loader.out { animation: ldrOut .85s var(--ease-x) .4s forwards; }
+    @keyframes ldrOut { to { transform: translateY(-100%); } }
+
+    .ldr-inner { position: relative; z-index: 2; }
+    .ldr-line { overflow: hidden; }
+    .ldr-text {
+      font-family: var(--font-d); font-size: clamp(4.5rem,11vw,10rem);
+      line-height: .9; letter-spacing: -.01em; display: block;
+      transform: translateY(110%); transition: transform .85s var(--ease-o);
+      text-transform: uppercase;
+    }
+    .ldr-text.up { transform: translateY(0); }
+    .ldr-sub-line { overflow: hidden; margin-top: .6rem; }
+    .ldr-sub {
+      font-size: 13px; color: var(--grey); display: block;
+      transform: translateY(110%); transition: transform .6s var(--ease-o) .25s;
+    }
+    .ldr-sub.up { transform: translateY(0); }
+    .ldr-grid {
+      position: absolute; inset: 0; pointer-events: none;
+      display: grid; grid-template-columns: repeat(10,1fr); padding: 0 var(--ph);
+    }
+    .ldr-grid .bg-col { border-right: 1px solid rgba(255,255,255,.04); }
+    .ldr-grid .bg-col:first-child { border-left: 1px solid rgba(255,255,255,.04); }
+
+    /* ── HEADER ────────────────────────────────────────────── */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 1.3rem var(--ph);
+      display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+    }
+    .bkt { color: var(--green); opacity: 0; transition: opacity .18s ease; }
+    a:hover .bkt, a.active .bkt { opacity: 1; }
+    .h-name { display: inline-flex; align-items: center; gap: .2em; font-size: 13px; letter-spacing: .02em; }
+    .nav-list { display: flex; align-items: center; gap: .1rem; }
+    .nav-link { display: inline-flex; align-items: center; gap: .2em; padding: .45rem .95rem; font-size: 13px; letter-spacing: .02em; }
+    .nav-link + .nav-link { border-left: 1px solid rgba(255,255,255,.1); }
+
+    /* ── PAGE WRAP ─────────────────────────────────────────── */
+    .page-wrap { position: relative; z-index: 1; }
+
+    .home-wrap {
+      padding: var(--ph); padding-top: 5.5rem;
+      height: 100dvh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── HERO ──────────────────────────────────────────────── */
+    .home-info {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+      justify-content: flex-end; padding-bottom: 2rem;
+    }
+    .home-info-grid {
+      display: grid; grid-template-columns: 6fr 4fr;
+      align-items: flex-end; gap: 1rem;
+    }
+    /* Right column wrapper — stacks info-cols + bullets */
+    .info-right {
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding-left: 1.5rem;
+    }
+
+    /* Display title */
+    .display-line { overflow: hidden; }
+    .display-inner {
+      font-family: var(--font-d);
+      font-size: clamp(4.2rem, 10.5vw, 11.5rem);
+      line-height: .88; letter-spacing: -.01em;
+      text-transform: uppercase; display: block;
+      transform: translateY(105%);
+      transition: transform 1.05s var(--ease-o);
+      will-change: transform;
+    }
+    .display-inner.up { transform: translateY(0); }
+    #dt1.up { transition-delay: .05s; }
+    #dt2.up { transition-delay: .12s; }
+
+    /* Info columns */
+    .info-cols {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: .8rem 1.5rem; align-items: end;
+    }
+    .info-col { display: flex; flex-direction: column; gap: .35rem; }
+    .info-line { overflow: hidden; }
+    .info-inner {
+      font-size: 13px; color: var(--grey); display: block;
+      transform: translateY(110%); transition: transform .7s var(--ease-o);
+      will-change: transform;
+    }
+    .info-inner.up { transform: translateY(0); }
+    .info-inner.white { color: var(--text); }
+
+    .time { font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+    .info-line-row { display: flex; align-items: baseline; }
+    .info-sep { font-size: 13px; color: var(--grey); flex-shrink: 0; }
+
+    /* ── Hero detail bullets ───────────────────────────────── */
+    .hero-bullets {
+      margin-top: .9rem;
+      padding-top: .8rem;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .hb-line { overflow: hidden; margin-bottom: .3rem; }
+    .hb-line:last-child { margin-bottom: 0; }
+    .hb-inner {
+      display: flex; gap: .75rem; align-items: flex-start;
+      transform: translateY(120%);
+      transition: transform .65s var(--ease-o);
+      will-change: transform;
+    }
+    .hb-inner.up { transform: translateY(0); }
+    .hb-dash { color: var(--green); flex-shrink: 0; line-height: 1.55; font-size: 13px; }
+    .hb-text { font-size: 13px; color: rgba(255,255,255,.62); line-height: 1.55; }
+
+    /* ── SHOWCASE ──────────────────────────────────────────── */
+    .showcase { padding: 0 var(--ph) var(--ph); flex-shrink: 0; }
+
+    .showcase-list {
+      display: grid; grid-template-columns: repeat(5,1fr);
+      gap: .6rem;
+      height: clamp(140px, 24vh, 260px);
+    }
+
+    /* Blur siblings on hover */
+    .showcase-list:has(.s-item:hover) .s-item:not(:hover) {
+      filter: blur(3px); opacity: .45;
+    }
+
+    .s-item {
+      position: relative; overflow: hidden;
+      transition: filter .55s var(--ease-blur), opacity .55s var(--ease-blur);
+    }
+
+    /* ── Card backgrounds ──────────────────────────────────── */
+    .s-bg {
+      position: absolute; inset: 0;
+      transition: transform .65s var(--ease-o);
+    }
+    .s-item:hover .s-bg { transform: scale(1.05); }
+
+    .c1 .s-bg {
+      background:
+        radial-gradient(ellipse 60% 50% at 30% 65%, rgba(255,140,20,.3) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 20%, rgba(255,200,0,.1) 0%, transparent 60%),
+        linear-gradient(155deg, #0d0400 0%, #1f0800 55%, #0a0200 100%);
+    }
+    .c1 .s-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,120,0,.03) 40px, rgba(255,120,0,.03) 41px);
+    }
+    .c2 .s-bg {
+      background:
+        radial-gradient(ellipse 55% 45% at 70% 45%, rgba(10,120,255,.24) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 30% at 20% 80%, rgba(0,200,255,.1) 0%, transparent 55%),
+        linear-gradient(155deg, #00040f 0%, #001020 55%, #00040f 100%);
+    }
+    .c2 .s-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,120,255,.025) 40px, rgba(0,120,255,.025) 41px);
+    }
+    .c3 .s-bg {
+      background:
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(110,60,255,.22) 0%, transparent 68%),
+        radial-gradient(ellipse 30% 30% at 85% 80%, rgba(200,0,255,.07) 0%, transparent 55%),
+        linear-gradient(155deg, #040010 0%, #0d0025 55%, #040010 100%);
+    }
+    .c3 .s-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(45deg, transparent 45%, rgba(130,60,255,.04) 50%, transparent 55%),
+                  linear-gradient(-45deg, transparent 45%, rgba(130,60,255,.04) 50%, transparent 55%);
+      background-size: 30px 30px;
+    }
+    .c4 .s-bg {
+      background:
+        radial-gradient(ellipse 55% 45% at 40% 60%, rgba(0,200,60,.2) 0%, transparent 68%),
+        radial-gradient(ellipse 35% 30% at 80% 20%, rgba(158,255,0,.1) 0%, transparent 55%),
+        linear-gradient(155deg, #000900 0%, #001500 55%, #000900 100%);
+    }
+    .c4 .s-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(0,200,60,.03) 28px, rgba(0,200,60,.03) 29px);
+    }
+    .c5 .s-bg {
+      background:
+        radial-gradient(ellipse 50% 40% at 60% 40%, rgba(180,180,180,.08) 0%, transparent 65%),
+        radial-gradient(ellipse 30% 30% at 20% 80%, rgba(100,100,100,.05) 0%, transparent 55%),
+        linear-gradient(155deg, #080808 0%, #111 55%, #080808 100%);
+    }
+    .c5 .s-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,.02) 60px, rgba(255,255,255,.02) 61px);
+    }
+
+    /* Accent lines */
+    .s-accent { position: absolute; inset: 0; pointer-events: none; }
+    .s-accent::before {
+      content: ''; position: absolute; bottom: 32%; left: 0; right: 0;
+      height: 1px; background: rgba(255,255,255,.05);
+    }
+    .s-accent::after {
+      content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 1px; background: rgba(255,255,255,.03);
+    }
+
+    /* Bottom fade for desc bar */
+    .s-fade {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+      background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ── Card bottom bar ───────────────────────────────────── */
+    .s-desc {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .65rem .9rem; z-index: 3;
+    }
+    .s-desc-l {
+      display: flex; align-items: center; gap: .3rem;
+      color: var(--dk-grey); transition: color .3s ease;
+    }
+    .s-item:hover .s-desc-l { color: var(--text); }
+    .s-num { font-size: 12px; display: flex; align-items: center; gap: .15rem; }
+    .bk-svg { width: 6px; transition: color .3s ease; }
+    .s-item:hover .bk-svg { color: var(--green); }
+    /* Card name label — always visible */
+    .s-name {
+      font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      color: rgba(255,255,255,.3); margin-left: .5rem;
+      transition: color .3s ease; white-space: nowrap;
+    }
+    .s-item:hover .s-name { color: var(--text); }
+    .s-desc-r {
+      display: flex; align-items: center; gap: .3rem;
+      font-size: 11px; opacity: 0; transition: opacity .3s ease;
+    }
+    .s-item:hover .s-desc-r { opacity: 1; }
+    .s-arrow { width: 12px; }
+
+    /* ── FOOTER ────────────────────────────────────────────── */
+    footer {
+      padding: 1.4rem var(--ph);
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .f-copy { font-size: 12px; color: var(--grey); }
+    .f-links { display: flex; gap: 1.5rem; }
+    .f-link {
+      font-size: 12px; color: var(--grey);
+      display: inline-flex; align-items: center; gap: .35rem; transition: color .2s;
+    }
+    .f-link:hover { color: var(--text); }
+    .f-icon { width: 11px; transition: transform .3s var(--ease-o); }
+    .f-link:hover .f-icon { transform: translate(.12rem,-.12rem); }
+
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    @media (max-width: 1100px) {
+      .display-inner { font-size: clamp(3.8rem, 9vw, 10rem); }
+    }
+    @media (max-width: 900px) {
+      .home-wrap { height: auto; min-height: 100dvh; }
+      .showcase-list { grid-template-columns: repeat(3,1fr); height: clamp(120px,20vh,200px); }
+      .s-item:nth-child(n+4) { display: none; }
+    }
+    @media (max-width: 680px) {
+      :root { --ph: 1.1rem; }
+      .home-wrap { height: auto; min-height: 100dvh; }
+      .home-info-grid { grid-template-columns: 1fr; gap: 1.2rem; }
+      .info-right { padding-left: 0; }
+      .display-inner { font-size: clamp(3.5rem,16vw,6rem); }
+      .showcase-list { grid-template-columns: repeat(2,1fr); height: clamp(110px,18vh,180px); }
+      .s-item:nth-child(n+3) { display: none; }
+      nav { display: none; }
+      .s-name { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="cursor"></div>
+
+  <!-- BG GRID -->
+  <div class="bg-grid" aria-hidden="true">
+    <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+    <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+    <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+    <div class="bg-col"></div>
+  </div>
+
+  <!-- PRELOADER -->
+  <div id="loader">
+    <div class="ldr-inner">
+      <div class="ldr-line"><span class="ldr-text" id="lt1">Денис</span></div>
+      <div class="ldr-line"><span class="ldr-text" id="lt2">Ланцов</span></div>
+      <div class="ldr-sub-line"><span class="ldr-sub" id="ls">Portfolio&nbsp;2025</span></div>
+    </div>
+    <div class="ldr-grid" aria-hidden="true">
+      <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+      <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+      <div class="bg-col"></div><div class="bg-col"></div><div class="bg-col"></div>
+      <div class="bg-col"></div>
+    </div>
+  </div>
+
+  <!-- PAGE -->
+  <div class="page-wrap">
+
+    <!-- HEADER -->
+    <header class="header">
+      <a href="#" class="h-name" data-cursor>
+        <span class="bkt">[</span>
+        <span data-shuf>Денис Ланцов</span>
+        <span class="bkt">]</span>
+      </a>
+      <div></div>
+      <nav>
+        <ul class="nav-list">
+          <li><a href="#experience" class="nav-link active" data-cursor>
+            <span class="bkt">[</span><span data-shuf>Опыт</span><span class="bkt">]</span>
+          </a></li>
+          <li><a href="#" class="nav-link" data-cursor>
+            <span class="bkt">[</span><span data-shuf>Инфо</span><span class="bkt">]</span>
+          </a></li>
+          <li><a href="mailto:lantsovden@gmail.com" class="nav-link" data-cursor>
+            <span class="bkt">[</span><span data-shuf>Контакт</span><span class="bkt">]</span>
+          </a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section class="home-wrap">
+
+        <!-- HERO INFO (updates on card hover) -->
+        <div class="home-info">
+          <div class="home-info-grid">
+
+            <!-- Giant title — two lines -->
+            <div class="home-title-block">
+              <div class="display-line">
+                <span class="display-inner" id="dt1">ДЕНИС</span>
+              </div>
+              <div class="display-line">
+                <span class="display-inner" id="dt2">ЛАНЦОВ_</span>
+              </div>
+            </div>
+
+            <!-- Right column: meta info + bullets -->
+            <div class="info-right">
+              <div class="info-cols">
+                <div class="info-col">
+                  <div class="info-line">
+                    <span class="info-inner" id="ir1">Event</span>
+                  </div>
+                  <div class="info-line">
+                    <span class="info-inner white" id="ir2">Manager</span>
+                  </div>
+                </div>
+                <div class="info-col info-col-right">
+                  <div class="info-line" style="margin-top:.4rem">
+                    <span class="info-inner time" id="livetime" style="opacity:.6">00:00:00</span>
+                  </div>
+                  <div class="info-line info-line-row">
+                    <span class="info-inner" id="iloc">г. Москва</span>
+                    <span class="info-sep">&nbsp;/&nbsp;</span>
+                    <span class="info-inner" id="iyr">2025</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bullets — appear on card hover, right of title -->
+              <div class="hero-bullets">
+                <div class="hb-line"><div class="hb-inner" id="hb1"><span class="hb-dash">—</span><span class="hb-text" id="hbt1"></span></div></div>
+                <div class="hb-line"><div class="hb-inner" id="hb2"><span class="hb-dash">—</span><span class="hb-text" id="hbt2"></span></div></div>
+                <div class="hb-line"><div class="hb-inner" id="hb3"><span class="hb-dash">—</span><span class="hb-text" id="hbt3"></span></div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SHOWCASE — Experience cards
+             data-line1, data-line2   → big title lines
+             data-info-l1/l2          → left col
+             data-info-r1/r2          → right col
+             data-b1/b2/b3            → bullet points
+        -->
+        <div class="showcase" id="experience">
+          <ul class="showcase-list">
+
+            <!-- 01 Luxury Sound -->
+            <li class="s-item c1"
+                data-line1="LUXURY"
+                data-line2="SOUND_"
+                data-info-l1="Event"
+                data-info-l2="Manager"
+                data-info-r1="Корп. события"
+                data-info-r2="2024 — 2025"
+                data-b1="Координировал работу и связь между артистами и техническим персоналом во время выступлений"
+                data-b2="Разрабатывал детальные ТЗ для технического персонала: свет, звук, видео"
+                data-b3="Производил расчёт таймингов для артистов — строгое соблюдение регламента программы"
+                data-cursor>
+              <div class="s-bg"></div>
+              <div class="s-accent"></div>
+              <div class="s-fade"></div>
+              <div class="s-desc">
+                <div class="s-desc-l">
+                  <div class="s-num">
+                    <svg class="bk-svg" viewBox="0 0 10 38" fill="none"><path d="M9.5.6V3.4H3.4V34.6H9.5V37.4H.6V.6H9.5Z" fill="currentColor"/></svg>
+                    <span>01</span>
+                    <svg class="bk-svg" viewBox="0 0 9 38" fill="none"><path d="M0 .6V3.4H6.1V34.6H0V37.4H8.9V.6H0Z" fill="currentColor"/></svg>
+                  </div>
+                  <span class="s-name">Luxury Sound</span>
+                </div>
+                <div class="s-desc-r">
+                  <span>Event Manager</span>
+                  <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+                </div>
+              </div>
+            </li>
+
+            <!-- 02 ВАВТ Project Manager -->
+            <li class="s-item c2"
+                data-line1="БОТ ДЛЯ"
+                data-line2="ВАВТ_"
+                data-info-l1="IT-продукты"
+                data-info-l2="Управление"
+                data-info-r1="2025 — 2026"
+                data-info-r2="ВАВТ"
+                data-b1="Организовал работу команды из 3 разработчиков"
+                data-b2="Успешно провёл переговоры с заказчиком (ВУЗом) по созданию и внедрению продукта"
+                data-b3="Создал Telegram-бота с расписанием — студенты находят информацию в 3 раза быстрее"
+                data-cursor>
+              <div class="s-bg"></div>
+              <div class="s-accent"></div>
+              <div class="s-fade"></div>
+              <div class="s-desc">
+                <div class="s-desc-l">
+                  <div class="s-num">
+                    <svg class="bk-svg" viewBox="0 0 10 38" fill="none"><path d="M9.5.6V3.4H3.4V34.6H9.5V37.4H.6V.6H9.5Z" fill="currentColor"/></svg>
+                    <span>02</span>
+                    <svg class="bk-svg" viewBox="0 0 9 38" fill="none"><path d="M0 .6V3.4H6.1V34.6H0V37.4H8.9V.6H0Z" fill="currentColor"/></svg>
+                  </div>
+                  <span class="s-name">ВАВТ — PM</span>
+                </div>
+                <div class="s-desc-r">
+                  <span>Project Manager</span>
+                  <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+                </div>
+              </div>
+            </li>
+
+            <!-- 03 Education -->
+            <li class="s-item c3"
+                data-line1="ОБРАЗО"
+                data-line2="ВАНИЕ_"
+                data-info-l1="Менеджмент"
+                data-info-l2="ВЭД"
+                data-info-r1="Бакалавриат"
+                data-info-r2="2023 — 2027"
+                data-b1="Бакалавриат «Менеджмент во внешней экономической деятельности», ВАВТ"
+                data-b2="Программа повышения квалификации «Технологии коммерческих переговоров» — 2024"
+                data-b3="Всероссийская академия внешней торговли"
+                data-cursor>
+              <div class="s-bg"></div>
+              <div class="s-accent"></div>
+              <div class="s-fade"></div>
+              <div class="s-desc">
+                <div class="s-desc-l">
+                  <div class="s-num">
+                    <svg class="bk-svg" viewBox="0 0 10 38" fill="none"><path d="M9.5.6V3.4H3.4V34.6H9.5V37.4H.6V.6H9.5Z" fill="currentColor"/></svg>
+                    <span>03</span>
+                    <svg class="bk-svg" viewBox="0 0 9 38" fill="none"><path d="M0 .6V3.4H6.1V34.6H0V37.4H8.9V.6H0Z" fill="currentColor"/></svg>
+                  </div>
+                  <span class="s-name">Образование</span>
+                </div>
+                <div class="s-desc-r">
+                  <span>2023 — 2027</span>
+                  <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+                </div>
+              </div>
+            </li>
+
+            <!-- 04 Hard Skills -->
+            <li class="s-item c4"
+                data-line1="HARD"
+                data-line2="SKILLS_"
+                data-info-l1="MS Office"
+                data-info-l2="AI Tools"
+                data-info-r1="English C1"
+                data-info-r2="Spanish B1"
+                data-b1="Microsoft Office: Excel, Word, PowerPoint"
+                data-b2="AI-инструменты: Claude Code, ChatGPT, Midjourney"
+                data-b3="Управление логистическими системами и концепции Lean Production"
+                data-cursor>
+              <div class="s-bg"></div>
+              <div class="s-accent"></div>
+              <div class="s-fade"></div>
+              <div class="s-desc">
+                <div class="s-desc-l">
+                  <div class="s-num">
+                    <svg class="bk-svg" viewBox="0 0 10 38" fill="none"><path d="M9.5.6V3.4H3.4V34.6H9.5V37.4H.6V.6H9.5Z" fill="currentColor"/></svg>
+                    <span>04</span>
+                    <svg class="bk-svg" viewBox="0 0 9 38" fill="none"><path d="M0 .6V3.4H6.1V34.6H0V37.4H8.9V.6H0Z" fill="currentColor"/></svg>
+                  </div>
+                  <span class="s-name">Hard Skills</span>
+                </div>
+                <div class="s-desc-r">
+                  <span>Навыки</span>
+                  <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+                </div>
+              </div>
+            </li>
+
+            <!-- 05 Soft Skills / Contact -->
+            <li class="s-item c5"
+                data-line1="SOFT"
+                data-line2="SKILLS_"
+                data-info-l1="Коммуникация"
+                data-info-l2="Переговоры"
+                data-info-r1="Лидерство"
+                data-info-r2="Инициатива"
+                data-b1="Высокая обучаемость и быстрая адаптация к новым задачам"
+                data-b2="Эффективная коммуникация и ведение переговоров с заказчиками"
+                data-b3="Организованность, ответственность, умение находить нестандартные решения"
+                data-cursor>
+              <div class="s-bg"></div>
+              <div class="s-accent"></div>
+              <div class="s-fade"></div>
+              <div class="s-desc">
+                <div class="s-desc-l">
+                  <div class="s-num">
+                    <svg class="bk-svg" viewBox="0 0 10 38" fill="none"><path d="M9.5.6V3.4H3.4V34.6H9.5V37.4H.6V.6H9.5Z" fill="currentColor"/></svg>
+                    <span>05</span>
+                    <svg class="bk-svg" viewBox="0 0 9 38" fill="none"><path d="M0 .6V3.4H6.1V34.6H0V37.4H8.9V.6H0Z" fill="currentColor"/></svg>
+                  </div>
+                  <span class="s-name">Soft Skills</span>
+                </div>
+                <div class="s-desc-r">
+                  <span>Контакт</span>
+                  <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+                </div>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p class="f-copy">© 2025 Денис Ланцов</p>
+      <div class="f-links">
+        <a href="mailto:lantsovden@gmail.com" class="f-link" data-cursor>
+          Email
+          <svg class="f-icon" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+        </a>
+        <a href="https://t.me/Zmyh47" target="_blank" rel="noopener" class="f-link" data-cursor>
+          Telegram
+          <svg class="f-icon" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+        </a>
+      </div>
+    </footer>
+
+  </div><!-- /page-wrap -->
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* ── Cursor ──────────────────────────────────────────────── */
+    const cursor = document.getElementById('cursor');
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top  = e.clientY + 'px';
+    });
+    document.querySelectorAll('[data-cursor], a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+    });
+
+    /* ── Text shuffle ────────────────────────────────────────── */
+    const POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&';
+    function shuffle(el, final, dur = 650, delay = 0) {
+      const text = final || el.textContent;
+      const chars = [...text];
+      let f = 0, total = Math.round(dur / 35);
+      setTimeout(() => {
+        const iv = setInterval(() => {
+          f++;
+          const p = f / total;
+          el.textContent = chars.map((c, i) => {
+            if (c === ' ') return ' ';
+            const cp = p - (i / chars.length) * 0.45;
+            if (cp >= 1) return c;
+            if (cp < 0)  return POOL[Math.random() * POOL.length | 0];
+            return Math.random() > .45 ? POOL[Math.random() * POOL.length | 0] : c;
+          }).join('');
+          if (f >= total) { el.textContent = text; clearInterval(iv); }
+        }, 35);
+      }, delay);
+    }
+
+    /* ── Hero text transition engine ────────────────────────── */
+    const fields = {
+      dt1:   { el: document.getElementById('dt1'),  orig: 'ДЕНИС' },
+      dt2:   { el: document.getElementById('dt2'),  orig: 'ЛАНЦОВ_' },
+      ir1:   { el: document.getElementById('ir1'),  orig: 'Event' },
+      ir2:   { el: document.getElementById('ir2'),  orig: 'Manager' },
+      iloc:  { el: document.getElementById('iloc'), orig: 'г. Москва' },
+      iyr:   { el: document.getElementById('iyr'),  orig: '2025' },
+    };
+
+    const OUT_DUR  = 300;
+    const IN_DUR   = 580;
+    const EASE_X   = 'cubic-bezier(0.76, 0, 0.24, 1)';
+    const EASE_I   = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+    let timers = {};
+
+    function animField(key, newText, delay = 0) {
+      const { el } = fields[key];
+      clearTimeout(timers[key]);
+      el.style.transition = `transform ${OUT_DUR}ms ${EASE_X} ${delay}ms`;
+      el.style.transform  = 'translateY(-110%)';
+      timers[key] = setTimeout(() => {
+        el.textContent = newText;
+        el.style.transition = 'none';
+        el.style.transform  = 'translateY(110%)';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = `transform ${IN_DUR}ms ${EASE_I}`;
+          el.style.transform  = 'translateY(0)';
+        }));
+      }, OUT_DUR + delay);
+    }
+
+    /* ── Bullet animation ────────────────────────────────────── */
+    const bulletWraps = [
+      document.getElementById('hb1'),
+      document.getElementById('hb2'),
+      document.getElementById('hb3'),
+    ];
+    const bulletTexts = [
+      document.getElementById('hbt1'),
+      document.getElementById('hbt2'),
+      document.getElementById('hbt3'),
+    ];
+
+    function showBullets(texts, baseDelay = 180) {
+      bulletWraps.forEach((wrap, i) => {
+        clearTimeout(timers['b' + i]);
+        // slide out any existing
+        wrap.style.transition = `transform ${OUT_DUR}ms ${EASE_X}`;
+        wrap.style.transform  = 'translateY(-110%)';
+        timers['b' + i] = setTimeout(() => {
+          bulletTexts[i].textContent = texts[i] || '';
+          wrap.style.transition = 'none';
+          wrap.style.transform  = 'translateY(120%)';
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            wrap.style.transition = `transform ${IN_DUR}ms ${EASE_I} ${i * 50}ms`;
+            wrap.style.transform  = 'translateY(0)';
+          }));
+        }, OUT_DUR);
+      });
+    }
+
+    function hideBullets() {
+      bulletWraps.forEach((wrap, i) => {
+        clearTimeout(timers['b' + i]);
+        wrap.style.transition = `transform ${OUT_DUR}ms ${EASE_X} ${i * 20}ms`;
+        wrap.style.transform  = 'translateY(-110%)';
+        // clear text after slide-out
+        timers['b' + i] = setTimeout(() => {
+          bulletTexts[i].textContent = '';
+        }, OUT_DUR + i * 20 + 50);
+      });
+    }
+
+    /* ── setHero / resetHero ─────────────────────────────────── */
+    function setHero(d, sg = 35) {
+      animField('dt1',  d.line1,  0);
+      animField('dt2',  d.line2,  sg);
+      animField('ir1',  d.infoL1, sg * 2);
+      animField('ir2',  d.infoL2, sg * 3);
+      animField('iloc', d.infoR1, sg * 4);
+      animField('iyr',  d.infoR2, sg * 5);
+      showBullets([d.b1, d.b2, d.b3]);
+    }
+
+    function resetHero(sg = 28) {
+      animField('dt1',  fields.dt1.orig,  0);
+      animField('dt2',  fields.dt2.orig,  sg);
+      animField('ir1',  fields.ir1.orig,  sg * 2);
+      animField('ir2',  fields.ir2.orig,  sg * 3);
+      animField('iloc', fields.iloc.orig, sg * 4);
+      animField('iyr',  fields.iyr.orig,  sg * 5);
+      hideBullets();
+    }
+
+    /* ── Card hover binding ──────────────────────────────────── */
+    document.querySelectorAll('.s-item[data-line1]').forEach(card => {
+      const d = {
+        line1:  card.dataset.line1,
+        line2:  card.dataset.line2,
+        infoL1: card.dataset.infoL1,
+        infoL2: card.dataset.infoL2,
+        infoR1: card.dataset.infoR1,
+        infoR2: card.dataset.infoR2,
+        b1: card.dataset.b1,
+        b2: card.dataset.b2,
+        b3: card.dataset.b3,
+      };
+      card.addEventListener('mouseenter', () => setHero(d));
+      card.addEventListener('mouseleave', resetHero);
+    });
+
+    /* ── Preloader ───────────────────────────────────────────── */
+    const lt1 = document.getElementById('lt1');
+    const lt2 = document.getElementById('lt2');
+    const ls  = document.getElementById('ls');
+    const loader = document.getElementById('loader');
+
+    setTimeout(() => lt1.classList.add('up'), 80);
+    setTimeout(() => lt2.classList.add('up'), 190);
+    setTimeout(() => ls.classList.add('up'),  360);
+
+    setTimeout(() => {
+      loader.classList.add('out');
+    }, 1550);
+    setTimeout(() => {
+      loader.style.display = 'none';
+      revealPage();
+    }, 2450);
+
+    /* ── Page reveal ─────────────────────────────────────────── */
+    function revealPage() {
+      // Big title
+      const dt1 = fields.dt1.el, dt2 = fields.dt2.el;
+      dt1.style.transition = `transform 1.05s ${EASE_I} .05s`;
+      dt1.style.transform  = 'translateY(0)';
+      dt2.style.transition = `transform 1.05s ${EASE_I} .12s`;
+      dt2.style.transform  = 'translateY(0)';
+
+      // Info lines
+      const infoEls = ['ir1','ir2','iloc','iyr','livetime'];
+      infoEls.forEach((id, i) => {
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.style.transition = `transform .7s ${EASE_I}`;
+            el.style.transform  = 'translateY(0)';
+          }
+        }, 180 + i * 70);
+      });
+
+      // Shuffle header/nav text
+      document.querySelectorAll('[data-shuf]').forEach((el, i) => {
+        shuffle(el, el.textContent, 600, 250 + i * 90);
+      });
+    }
+
+    /* ── Nav hover shuffle ───────────────────────────────────── */
+    document.querySelectorAll('.nav-link, .h-name').forEach(link => {
+      const el = link.querySelector('[data-shuf]');
+      if (!el) return;
+      const orig = el.textContent;
+      link.addEventListener('mouseenter', () => shuffle(el, orig, 380));
+    });
+
+    /* ── Live clock ──────────────────────────────────────────── */
+    function tick() {
+      const n = new Date();
+      const t = [n.getHours(), n.getMinutes(), n.getSeconds()]
+        .map(v => String(v).padStart(2,'0')).join(':');
+      const el = document.getElementById('livetime');
+      if (el) el.textContent = t;
+    }
+    tick(); setInterval(tick, 1000);
+
+    /* ── Fallback on scroll ──────────────────────────────────── */
+    window.addEventListener('scroll', () => {
+      ['dt1','dt2','ir1','ir2','iloc','iyr'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.transition = 'none'; el.style.transform = 'translateY(0)'; }
+      });
+    }, { once: true });
+
+  })();
+  </script>
+</body>
+</html>
