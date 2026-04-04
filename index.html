@@ -313,6 +313,91 @@
     .f-icon { width: 11px; transition: transform .3s var(--ease-o); }
     .f-link:hover .f-icon { transform: translate(.12rem,-.12rem); }
 
+    /* ── HAMBURGER MENU ────────────────────────────────────── */
+    .nav-toggle {
+      display: none;
+      width: 36px; height: 36px;
+      align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      padding: 0; flex-shrink: 0; z-index: 200;
+    }
+    .nav-toggle-bars {
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .nav-toggle-bars span {
+      display: block; width: 22px; height: 1px;
+      background: var(--text);
+      transition: transform .35s var(--ease-o), opacity .25s ease, width .35s var(--ease-o);
+      transform-origin: center;
+    }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(2) { opacity: 0; width: 0; }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+    /* Mobile overlay nav */
+    .mobile-nav {
+      display: none;
+      position: fixed; inset: 0; z-index: 150;
+      background: var(--bg);
+      flex-direction: column;
+      justify-content: center;
+      padding: 2rem var(--ph);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s var(--ease-o);
+    }
+    .mobile-nav.open { opacity: 1; pointer-events: all; }
+    .mobile-nav-list { display: flex; flex-direction: column; gap: 0; }
+    .mobile-nav-item {
+      border-top: 1px solid rgba(255,255,255,.06);
+      overflow: hidden;
+    }
+    .mobile-nav-item:last-child { border-bottom: 1px solid rgba(255,255,255,.06); }
+    .mobile-nav-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4rem 0;
+      font-family: var(--font-d); font-size: clamp(2.2rem, 10vw, 3.5rem);
+      text-transform: uppercase; letter-spacing: -.01em;
+      transform: translateY(30px); opacity: 0;
+      transition: transform .5s var(--ease-o), opacity .4s var(--ease-o), color .2s;
+    }
+    .mobile-nav.open .mobile-nav-link { transform: translateY(0); opacity: 1; }
+    .mobile-nav.open .mobile-nav-item:nth-child(1) .mobile-nav-link { transition-delay: .07s; }
+    .mobile-nav.open .mobile-nav-item:nth-child(2) .mobile-nav-link { transition-delay: .13s; }
+    .mobile-nav.open .mobile-nav-item:nth-child(3) .mobile-nav-link { transition-delay: .19s; }
+    .mobile-nav-link:hover { color: var(--green); }
+    .mobile-nav-link svg { width: 20px; opacity: .3; }
+    .mobile-nav-foot {
+      position: absolute; bottom: 2rem; left: var(--ph); right: var(--ph);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mobile-nav-foot-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--grey); }
+
+    /* ── MOBILE CARD PANEL ──────────────────────────────────── */
+    /* Expandable info panel below cards on mobile */
+    .mobile-card-panel {
+      display: none;
+      padding: 1.2rem var(--ph) 1.4rem;
+      border-top: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.02);
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .5s var(--ease-o), padding .4s var(--ease-o);
+    }
+    .mobile-card-panel.open {
+      max-height: 300px;
+    }
+    .mcp-title {
+      font-family: var(--font-d); font-size: 1.6rem;
+      text-transform: uppercase; letter-spacing: -.01em;
+      line-height: .95; margin-bottom: .8rem;
+      color: var(--text);
+    }
+    .mcp-bullets { display: flex; flex-direction: column; gap: .45rem; }
+    .mcp-bullet { display: flex; gap: .6rem; align-items: flex-start; }
+    .mcp-dash { color: var(--green); flex-shrink: 0; font-size: 13px; line-height: 1.55; }
+    .mcp-text { font-size: 12px; color: rgba(255,255,255,.6); line-height: 1.6; }
+
     /* ── RESPONSIVE ────────────────────────────────────────── */
     @media (max-width: 1100px) {
       .display-inner { font-size: clamp(2.9rem, 7vw, 7.5rem); }
@@ -324,14 +409,57 @@
     }
     @media (max-width: 680px) {
       :root { --ph: 1.1rem; }
-      .home-wrap { height: auto; min-height: 100dvh; }
+      .home-wrap { height: auto; min-height: 100dvh; padding-bottom: 0; }
+      .home-info { padding-bottom: 1.2rem; }
       .home-info-grid { grid-template-columns: 1fr; gap: 1.2rem; }
       .info-right { padding-left: 0; }
       .display-inner { font-size: clamp(2.8rem,13vw,5rem); }
-      .showcase-list { grid-template-columns: repeat(2,1fr); height: clamp(110px,18vh,180px); }
-      .s-item:nth-child(n+3) { display: none; }
+
+      /* Showcase — vertical stack on mobile, all visible */
+      .showcase { padding: 0 0 0; }
+      .showcase-list {
+        display: flex; flex-direction: column;
+        height: auto; gap: 0;
+      }
+      .s-item {
+        display: block !important;
+        height: 72px;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+        transition: height .45s var(--ease-o), filter .55s var(--ease-blur), opacity .55s var(--ease-blur);
+      }
+      .s-item.expanded { height: auto; }
+      .showcase-list:has(.s-item.expanded) .s-item:not(.expanded) { filter: none !important; opacity: 1 !important; }
+      /* Keep blur on non-hover for desktop only */
+      .showcase-list:has(.s-item:hover) .s-item:not(:hover) { filter: none; opacity: 1; }
+      .s-desc {
+        position: relative; padding: 1.1rem var(--ph);
+        border-left: none;
+      }
+      .s-desc-r { opacity: 1; }
+      .s-desc-r span { font-size: 10px; color: var(--grey); }
+      .s-bg { position: absolute; }
+      .s-fade { display: none; }
+      .s-name { display: block; font-size: 11px; }
+      .mobile-card-panel { display: none !important; }
+      /* Active card highlight on mobile */
+      .s-item.active-mobile { border-left: 2px solid var(--green); }
+      .s-item.active-mobile .s-name { color: var(--green); }
+      .s-item.active-mobile .bk-svg { color: var(--green); }
+
+      /* Nav toggle visible */
       nav { display: none; }
-      .s-name { display: none; }
+      .nav-toggle { display: flex; }
+      .mobile-nav { display: flex; }
+
+      /* footer on mobile */
+      footer { flex-direction: column; gap: .5rem; align-items: flex-start; }
+    }
+
+    /* ── Touch: disable custom cursor ───────────────────────── */
+    @media (hover: none) and (pointer: coarse) {
+      body { cursor: auto; }
+      a { cursor: pointer; }
+      #cursor { display: none; }
     }
   </style>
 </head>
@@ -383,7 +511,34 @@
           </a></li>
         </ul>
       </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Меню" aria-expanded="false">
+        <div class="nav-toggle-bars">
+          <span></span><span></span><span></span>
+        </div>
+      </button>
     </header>
+
+    <!-- MOBILE NAV OVERLAY -->
+    <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
+      <ul class="mobile-nav-list">
+        <li class="mobile-nav-item">
+          <a href="#experience" class="mobile-nav-link" id="mobileNavExp">
+            <span>Опыт</span>
+            <svg viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+          </a>
+        </li>
+        <li class="mobile-nav-item">
+          <a href="contact.html" class="mobile-nav-link">
+            <span>Контакт</span>
+            <svg viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+          </a>
+        </li>
+      </ul>
+      <div class="mobile-nav-foot">
+        <span class="mobile-nav-foot-label">Денис Ланцов</span>
+        <span class="mobile-nav-foot-label">Portfolio 2026</span>
+      </div>
+    </nav>
 
     <main>
       <section class="home-wrap">
@@ -601,6 +756,11 @@
             </li>
 
           </ul>
+          <!-- Mobile card detail panel -->
+          <div class="mobile-card-panel" id="mobileCardPanel">
+            <div class="mcp-title" id="mcpTitle"></div>
+            <div class="mcp-bullets" id="mcpBullets"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -829,6 +989,30 @@
     }
     tick(); setInterval(tick, 1000);
 
+    /* ── Mobile: activate first card on load so bullets visible ─ */
+    window.addEventListener('load', () => {
+      if (!isMobileLayout()) return;
+      const firstCard = document.querySelector('.s-item[data-line1]');
+      if (!firstCard) return;
+      const d = {
+        line1:  firstCard.dataset.line1,
+        line2:  firstCard.dataset.line2,
+        infoL1: firstCard.dataset.infoL1,
+        infoL2: firstCard.dataset.infoL2,
+        infoR1: firstCard.dataset.infoR1,
+        infoR2: firstCard.dataset.infoR2,
+        b1: firstCard.dataset.b1,
+        b2: firstCard.dataset.b2,
+        b3: firstCard.dataset.b3,
+      };
+      // Slight delay so page reveal animations finish first
+      setTimeout(() => {
+        firstCard.classList.add('active-mobile');
+        activeCard = firstCard;
+        setHero(d);
+      }, 2600);
+    });
+
     /* ── Fallback on scroll ──────────────────────────────────── */
     window.addEventListener('scroll', () => {
       ['dt1','dt2','ir1','ir2','iloc','iyr'].forEach(id => {
@@ -836,6 +1020,69 @@
         if (el) { el.style.transition = 'none'; el.style.transform = 'translateY(0)'; }
       });
     }, { once: true });
+
+    /* ── Hamburger / mobile nav ──────────────────────────────── */
+    const navToggle  = document.getElementById('navToggle');
+    const mobileNav  = document.getElementById('mobileNav');
+    let navOpen = false;
+
+    function toggleNav(force) {
+      navOpen = force !== undefined ? force : !navOpen;
+      navToggle.classList.toggle('open', navOpen);
+      mobileNav.classList.toggle('open', navOpen);
+      mobileNav.setAttribute('aria-hidden', String(!navOpen));
+      navToggle.setAttribute('aria-expanded', String(navOpen));
+      document.body.style.overflow = navOpen ? 'hidden' : '';
+    }
+
+    navToggle.addEventListener('click', () => toggleNav());
+
+    // Close on nav link click
+    mobileNav.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => toggleNav(false));
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && navOpen) toggleNav(false);
+    });
+
+    /* ── Mobile card tap → update hero block ────────────────── */
+    let activeCard = null;
+
+    function isMobileLayout() {
+      return window.matchMedia('(max-width: 680px)').matches;
+    }
+
+    document.querySelectorAll('.s-item[data-line1]').forEach(card => {
+      const d = {
+        line1:  card.dataset.line1,
+        line2:  card.dataset.line2,
+        infoL1: card.dataset.infoL1,
+        infoL2: card.dataset.infoL2,
+        infoR1: card.dataset.infoR1,
+        infoR2: card.dataset.infoR2,
+        b1: card.dataset.b1,
+        b2: card.dataset.b2,
+        b3: card.dataset.b3,
+      };
+      card.addEventListener('click', () => {
+        if (!isMobileLayout()) return;
+        if (activeCard === card) {
+          // Second tap — deselect and reset hero
+          activeCard.classList.remove('active-mobile');
+          activeCard = null;
+          resetHero();
+          return;
+        }
+        if (activeCard) activeCard.classList.remove('active-mobile');
+        activeCard = card;
+        card.classList.add('active-mobile');
+        setHero(d);
+        // Scroll to top so user sees the updated hero
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
 
   })();
   </script>

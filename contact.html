@@ -227,6 +227,59 @@
     .f-icon { width: 11px; transition: transform .3s var(--ease-o); }
     .f-link:hover .f-icon { transform: translate(.12rem,-.12rem); }
 
+    /* ── HAMBURGER ──────────────────────────────────────────── */
+    .nav-toggle {
+      display: none;
+      width: 36px; height: 36px;
+      align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      padding: 0; flex-shrink: 0; z-index: 200;
+    }
+    .nav-toggle-bars { display: flex; flex-direction: column; gap: 5px; }
+    .nav-toggle-bars span {
+      display: block; width: 22px; height: 1px; background: var(--text);
+      transition: transform .35s var(--ease-o), opacity .25s ease, width .35s var(--ease-o);
+      transform-origin: center;
+    }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(2) { opacity: 0; width: 0; }
+    .nav-toggle.open .nav-toggle-bars span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+    .mobile-nav {
+      display: none;
+      position: fixed; inset: 0; z-index: 150;
+      background: var(--bg);
+      flex-direction: column; justify-content: center;
+      padding: 2rem var(--ph);
+      opacity: 0; pointer-events: none;
+      transition: opacity .35s var(--ease-o);
+    }
+    .mobile-nav.open { opacity: 1; pointer-events: all; }
+    .mobile-nav-list { display: flex; flex-direction: column; gap: 0; }
+    .mobile-nav-item {
+      border-top: 1px solid rgba(255,255,255,.06);
+      overflow: hidden;
+    }
+    .mobile-nav-item:last-child { border-bottom: 1px solid rgba(255,255,255,.06); }
+    .mobile-nav-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.4rem 0;
+      font-family: var(--font-d); font-size: clamp(2.2rem, 10vw, 3.5rem);
+      text-transform: uppercase; letter-spacing: -.01em;
+      transform: translateY(30px); opacity: 0;
+      transition: transform .5s var(--ease-o), opacity .4s var(--ease-o), color .2s;
+    }
+    .mobile-nav.open .mobile-nav-link { transform: translateY(0); opacity: 1; }
+    .mobile-nav.open .mobile-nav-item:nth-child(1) .mobile-nav-link { transition-delay: .07s; }
+    .mobile-nav.open .mobile-nav-item:nth-child(2) .mobile-nav-link { transition-delay: .13s; }
+    .mobile-nav-link:hover { color: var(--green); }
+    .mobile-nav-link svg { width: 20px; opacity: .3; }
+    .mobile-nav-foot {
+      position: absolute; bottom: 2rem; left: var(--ph); right: var(--ph);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mobile-nav-foot-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--grey); }
+
     /* ── RESPONSIVE ─────────────────────────────────────────── */
     @media (max-width: 900px) {
       .contact-page {
@@ -241,10 +294,20 @@
       :root { --ph: 1.1rem; }
       .contact-heading { font-size: clamp(2.5rem, 12vw, 4.5rem); }
       nav { display: none; }
+      .nav-toggle { display: flex; }
+      .mobile-nav { display: flex; }
       .photo-frame { max-width: 100%; }
       .contact-links { grid-template-columns: 1fr; }
       .cl-item:nth-child(odd) { padding-right: 0; border-right: none; }
       .cl-item:nth-child(even) { padding-left: 0; }
+      footer { flex-direction: column; gap: .5rem; align-items: flex-start; }
+    }
+
+    /* ── Touch: disable custom cursor ───────────────────────── */
+    @media (hover: none) and (pointer: coarse) {
+      body { cursor: auto; }
+      a { cursor: pointer; }
+      #cursor { display: none; }
     }
   </style>
 </head>
@@ -278,7 +341,34 @@
         </a></li>
       </ul>
     </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Меню" aria-expanded="false">
+      <div class="nav-toggle-bars">
+        <span></span><span></span><span></span>
+      </div>
+    </button>
   </header>
+
+  <!-- MOBILE NAV OVERLAY -->
+  <nav class="mobile-nav" id="mobileNav" aria-hidden="true">
+    <ul class="mobile-nav-list">
+      <li class="mobile-nav-item">
+        <a href="index.html#experience" class="mobile-nav-link">
+          <span>Опыт</span>
+          <svg viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+        </a>
+      </li>
+      <li class="mobile-nav-item">
+        <a href="contact.html" class="mobile-nav-link">
+          <span>Контакт</span>
+          <svg viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
+        </a>
+      </li>
+    </ul>
+    <div class="mobile-nav-foot">
+      <span class="mobile-nav-foot-label">Денис Ланцов</span>
+      <span class="mobile-nav-foot-label">Portfolio 2026</span>
+    </div>
+  </nav>
 
   <!-- PAGE -->
   <div class="page-wrap">
@@ -412,6 +502,24 @@
       const orig = el.textContent;
       link.addEventListener('mouseenter', () => shuffle(el, orig, 380));
     });
+
+    /* ── Hamburger / mobile nav ──────────────────────────────── */
+    const navToggle = document.getElementById('navToggle');
+    const mobileNav = document.getElementById('mobileNav');
+    let navOpen = false;
+
+    function toggleNav(force) {
+      navOpen = force !== undefined ? force : !navOpen;
+      navToggle.classList.toggle('open', navOpen);
+      mobileNav.classList.toggle('open', navOpen);
+      mobileNav.setAttribute('aria-hidden', String(!navOpen));
+      navToggle.setAttribute('aria-expanded', String(navOpen));
+      document.body.style.overflow = navOpen ? 'hidden' : '';
+    }
+
+    if (navToggle) navToggle.addEventListener('click', () => toggleNav());
+    if (mobileNav) mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleNav(false)));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && navOpen) toggleNav(false); });
 
     /* ── Page reveal on load ─────────────────────────────────── */
     const EASE_I = 'cubic-bezier(0.16, 1, 0.3, 1)';
