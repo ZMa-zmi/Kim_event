@@ -87,6 +87,14 @@
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       padding: 1.3rem var(--ph);
       display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+      transition: background .3s ease, backdrop-filter .3s ease, -webkit-backdrop-filter .3s ease, border-color .3s ease;
+      border-bottom: 1px solid transparent;
+    }
+    .header.scrolled {
+      background: rgba(9,9,9,.82);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-bottom-color: rgba(255,255,255,.06);
     }
     .bkt { color: var(--green); opacity: 0; transition: opacity .18s ease; }
     a:hover .bkt, a.active .bkt { opacity: 1; }
@@ -177,7 +185,7 @@
 
     .showcase-list {
       display: grid; grid-template-columns: repeat(5,1fr);
-      gap: .6rem;
+      gap: 0;
       height: clamp(140px, 24vh, 260px);
     }
 
@@ -187,8 +195,17 @@
     }
 
     .s-item {
-      position: relative; overflow: hidden;
+      position: relative; overflow: visible;
       transition: filter .55s var(--ease-blur), opacity .55s var(--ease-blur);
+      /* Expand hitbox to cover the gap — each card claims half the gap on each side */
+      padding: 0 .3rem;
+    }
+    .s-item:first-child { padding-left: 0; }
+    .s-item:last-child  { padding-right: 0; }
+
+    /* Inner wrapper clips visuals back to the visible card size */
+    .s-item-inner {
+      position: relative; width: 100%; height: 100%; overflow: hidden;
     }
 
     /* ── Card backgrounds ──────────────────────────────────── */
@@ -455,8 +472,13 @@
       footer { flex-direction: column; gap: .5rem; align-items: flex-start; }
     }
 
-    /* ── Touch: disable custom cursor ───────────────────────── */
+    /* ── Touch / mobile: disable custom cursor ──────────────── */
     @media (hover: none) and (pointer: coarse) {
+      body { cursor: auto; }
+      a { cursor: pointer; }
+      #cursor { display: none; }
+    }
+    @media (max-width: 680px) {
       body { cursor: auto; }
       a { cursor: pointer; }
       #cursor { display: none; }
@@ -612,6 +634,7 @@
                 data-b2="Разрабатывал детальные ТЗ для технического персонала: свет, звук, видео"
                 data-b3="Производил расчёт таймингов для артистов — строгое соблюдение регламента программы"
                 data-cursor>
+              <div class="s-item-inner">
               <div class="s-bg"></div>
               <div class="s-accent"></div>
               <div class="s-fade"></div>
@@ -629,6 +652,7 @@
                   <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
                 </div>
               </div>
+              </div>
             </li>
 
             <!-- 02 ВАВТ Project Manager -->
@@ -643,6 +667,7 @@
                 data-b2="Успешно провёл переговоры с заказчиком (ВУЗом) по созданию и внедрению продукта"
                 data-b3="Создал Telegram-бота с расписанием — студенты находят информацию в 3 раза быстрее"
                 data-cursor>
+              <div class="s-item-inner">
               <div class="s-bg"></div>
               <div class="s-accent"></div>
               <div class="s-fade"></div>
@@ -660,6 +685,7 @@
                   <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
                 </div>
               </div>
+              </div>
             </li>
 
             <!-- 03 Education -->
@@ -674,6 +700,7 @@
                 data-b2="Программа повышения квалификации «Технологии коммерческих переговоров» — 2024"
                 data-b3="Всероссийская академия внешней торговли"
                 data-cursor>
+              <div class="s-item-inner">
               <div class="s-bg"></div>
               <div class="s-accent"></div>
               <div class="s-fade"></div>
@@ -691,6 +718,7 @@
                   <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
                 </div>
               </div>
+              </div>
             </li>
 
             <!-- 04 Hard Skills -->
@@ -705,6 +733,7 @@
                 data-b2="AI-инструменты: Claude Code, ChatGPT, Midjourney"
                 data-b3="Управление логистическими системами и концепции Lean Production"
                 data-cursor>
+              <div class="s-item-inner">
               <div class="s-bg"></div>
               <div class="s-accent"></div>
               <div class="s-fade"></div>
@@ -722,6 +751,7 @@
                   <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
                 </div>
               </div>
+              </div>
             </li>
 
             <!-- 05 Soft Skills / Contact -->
@@ -736,6 +766,7 @@
                 data-b2="Эффективная коммуникация и ведение переговоров с заказчиками"
                 data-b3="Организованность, ответственность, умение находить нестандартные решения"
                 data-cursor>
+              <div class="s-item-inner">
               <div class="s-bg"></div>
               <div class="s-accent"></div>
               <div class="s-fade"></div>
@@ -752,6 +783,7 @@
                   <span>Навыки</span>
                   <svg class="s-arrow" viewBox="0 0 14 11" fill="none"><path d="M13.59 5.2L8.25 10.4 7.83 9.98 7.41 9.55 11.25 5.8H0V4.6h11.25L7.41.86 7.83.43 8.25 0l5.34 5.2Z" fill="currentColor"/></svg>
                 </div>
+              </div>
               </div>
             </li>
 
@@ -989,29 +1021,14 @@
     }
     tick(); setInterval(tick, 1000);
 
-    /* ── Mobile: activate first card on load so bullets visible ─ */
-    window.addEventListener('load', () => {
-      if (!isMobileLayout()) return;
-      const firstCard = document.querySelector('.s-item[data-line1]');
-      if (!firstCard) return;
-      const d = {
-        line1:  firstCard.dataset.line1,
-        line2:  firstCard.dataset.line2,
-        infoL1: firstCard.dataset.infoL1,
-        infoL2: firstCard.dataset.infoL2,
-        infoR1: firstCard.dataset.infoR1,
-        infoR2: firstCard.dataset.infoR2,
-        b1: firstCard.dataset.b1,
-        b2: firstCard.dataset.b2,
-        b3: firstCard.dataset.b3,
-      };
-      // Slight delay so page reveal animations finish first
-      setTimeout(() => {
-        firstCard.classList.add('active-mobile');
-        activeCard = firstCard;
-        setHero(d);
-      }, 2600);
-    });
+
+    /* ── Header scroll background ───────────────────────────── */
+    const header = document.querySelector('.header');
+    function updateHeader() {
+      header.classList.toggle('scrolled', window.scrollY > 10);
+    }
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    updateHeader();
 
     /* ── Fallback on scroll ──────────────────────────────────── */
     window.addEventListener('scroll', () => {

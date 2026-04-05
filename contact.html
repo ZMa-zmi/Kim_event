@@ -56,6 +56,14 @@
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       padding: 1.3rem var(--ph);
       display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+      transition: background .3s ease, backdrop-filter .3s ease, -webkit-backdrop-filter .3s ease, border-color .3s ease;
+      border-bottom: 1px solid transparent;
+    }
+    .header.scrolled {
+      background: rgba(9,9,9,.82);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-bottom-color: rgba(255,255,255,.06);
     }
     .bkt { color: var(--green); opacity: 0; transition: opacity .18s ease; }
     a:hover .bkt, a.active .bkt { opacity: 1; }
@@ -461,6 +469,14 @@
   <script>
   (() => {
     'use strict';
+
+    /* ── Header scroll background ───────────────────────────── */
+    const header = document.querySelector('.header');
+    function updateHeader() {
+      header.classList.toggle('scrolled', window.scrollY > 10);
+    }
+    window.addEventListener('scroll', updateHeader, { passive: true });
+    updateHeader();
 
     /* ── Cursor ──────────────────────────────────────────────── */
     const cursor = document.getElementById('cursor');
