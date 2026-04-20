@@ -1136,12 +1136,28 @@
         b3: card.dataset.b3,
       };
 
-      // Use touchend instead of click on mobile to avoid synthetic mouse event cascade.
-      // touchend fires before the browser-generated mouseenter/mouseleave/click chain,
-      // so we can set lastTouchTime and handle the interaction cleanly.
+      // Touch handling: distinguish tap from scroll.
+      // Record touch start position; on touchend, only activate if the finger
+      // moved less than TAP_THRESHOLD pixels (i.e. it was a tap, not a scroll).
+      const TAP_THRESHOLD = 10; // px
+      let touchStartY = 0;
+      let touchStartX = 0;
+
+      card.addEventListener('touchstart', (e) => {
+        touchStartY = e.changedTouches[0].clientY;
+        touchStartX = e.changedTouches[0].clientX;
+      }, { passive: true });
+
       card.addEventListener('touchend', (e) => {
         if (!isMobileLayout()) return;
-        // Prevent the synthetic click/mouseenter that follows touchend
+
+        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+
+        // If finger moved more than threshold — it's a scroll, not a tap; ignore
+        if (dy > TAP_THRESHOLD || dx > TAP_THRESHOLD) return;
+
+        // It's a real tap — prevent the synthetic click/mouseenter that follows
         e.preventDefault();
 
         if (activeCard === card) {
