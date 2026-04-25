@@ -1,0 +1,11 @@
+Options -Indexes
+RewriteEngine On
+
+# Redirect root to /experience
+RewriteRule ^$ /experience/ [R=301,L]
+
+# Clean URLs: /experience -> /experience/index.html
+RewriteRule ^experience/?$ /experience/index.html [L]
+
+# Clean URLs: /contact -> /contact/index.html
+RewriteRule ^contact/?$ /contact/index.html [L]

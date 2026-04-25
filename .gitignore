@@ -1,0 +1,15 @@
+# Dev utilities
+serve.mjs
+screenshot.mjs
+
+# Dev folders
+reference/
+temporary screenshots/
+
+# Claude
+CLAUDE.md
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
